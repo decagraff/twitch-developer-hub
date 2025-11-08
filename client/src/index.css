@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-twitch-dark text-white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-twitch-purple hover:bg-twitch-purple-dark text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-twitch-gray-dark hover:bg-twitch-gray text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply bg-twitch-dark-light border border-twitch-gray-dark rounded-lg px-4 py-2 text-white placeholder-twitch-gray-light focus:outline-none focus:border-twitch-purple transition-colors duration-200;
+  }
+
+  .card {
+    @apply bg-twitch-dark-light rounded-lg p-6 border border-twitch-gray-dark;
+  }
+}

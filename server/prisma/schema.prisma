@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed password
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  twitchConfigs TwitchConfig[]
+  savedTokens   SavedToken[]
+  webhooks      Webhook[]
+  apiLogs       ApiLog[]
+
+  @@map("users")
+}
+
+// Twitch Client Configuration (Client ID & Secret)
+model TwitchConfig {
+  id           String   @id @default(uuid())
+  userId       String
+  clientId     String
+  clientSecret String   // Encrypted
+  name         String?  // Optional name for multiple configs
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedTokens SavedToken[]
+
+  // Ensure a user cannot have duplicate clientIds
+  @@unique([userId, clientId])
+  @@map("twitch_configs")
+}
+
+// Saved Tokens (User Access & App Access)
+model SavedToken {
+  id              String   @id @default(uuid())
+  userId          String
+  twitchConfigId  String
+  tokenType       String   // "user" or "app"
+  accessToken     String   // Encrypted
+  refreshToken    String?  // Encrypted (only for user tokens)
+  scopes          String[] // Array of scopes
+  channelLogin    String?  // Twitch username (null for app tokens)
+  channelId       String?  // Twitch user ID (null for app tokens)
+  name            String?  // Optional name/description
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  twitchConfig TwitchConfig @relation(fields: [twitchConfigId], references: [id], onDelete: Cascade)
+  apiLogs ApiLog[]
+
+  @@map("saved_tokens")
+}
+
+// EventSub Webhooks
+model Webhook {
+  id               String   @id @default(uuid())
+  userId           String
+  subscriptionId   String   @unique // From Twitch EventSub
+  type             String   // EventSub subscription type
+  condition        Json?    // EventSub conditions (broadcaster_user_id, moderator_user_id, etc.)
+  callbackUrl      String
+  status           String   // enabled, webhook_callback_verification_pending, etc.
+  cost             Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+// API Call Logs
+model ApiLog {
+  id           String   @id @default(uuid())
+  userId       String
+  tokenId      String?  // Optional, might not use a token for some calls
+  method       String   // GET, POST, PUT, PATCH, DELETE
+  endpoint     String   // The API endpoint called
+  status       Int?     // HTTP status code (null if error before response)
+  requestBody  String?  // JSON string of request body
+  responseBody String?  // JSON string of response body
+  error        String?  // Error message if call failed
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token SavedToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("api_logs")
+}
